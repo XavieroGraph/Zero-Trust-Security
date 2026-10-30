@@ -1,0 +1,384 @@
+{
+  "info": {
+    "name": "Zero Trust Security - UNSIL (Praktikum)",
+    "description": "Postman Collection Pengujian Arsitektur Zero Trust (NIST SP 800-207) - Keamanan Informasi Universitas Siliwangi",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "directNilaiUrl", "value": "http://localhost:3001" },
+    { "key": "token_mhs1", "value": "" },
+    { "key": "refresh_token_mhs1", "value": "" },
+    { "key": "token_dosen1", "value": "" },
+    { "key": "token_admin", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01. Autentikasi & Verifikasi Device Context",
+      "item": [
+        {
+          "name": "1.1 Login Mhs 1 - Device Sah (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) { pm.collectionVariables.set('token_mhs1', json.accessToken); }",
+                  "if (json.refreshToken) { pm.collectionVariables.set('refresh_token_mhs1', json.refreshToken); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"mhs1\",\n  \"password\": \"mhs123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "1.2 Login Mhs 1 - Device Tidak Terdaftar (403 Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-UNKNOWN-999" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"mhs1\",\n  \"password\": \"mhs123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "1.3 Login Dosen 1 - Device Sah (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) { pm.collectionVariables.set('token_dosen1', json.accessToken); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dosen1\",\n  \"password\": \"dosen123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "1.4 Login Admin - Device Sah (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) { pm.collectionVariables.set('token_admin', json.accessToken); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-ADM-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin1\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Direct Access Protection (Assume Breach)",
+      "item": [
+        {
+          "name": "2.1 Akses Langsung Port 3001 Tanpa Gateway Secret (403 Forbidden)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_dosen1}}" }
+            ],
+            "url": "{{directNilaiUrl}}/nilai"
+          }
+        },
+        {
+          "name": "2.2 Akses Port 3001 Membawa Gateway Secret tapi Token Palsu (401 Unauthorized)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Gateway-Secret", "value": "X-PEP-GATEWAY-INTERNAL-SECRET-AUTHENTICITY-KEY" },
+              { "key": "Authorization", "value": "Bearer token.invalid.jwt" }
+            ],
+            "url": "{{directNilaiUrl}}/nilai"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Hak Akses Nilai (GET /nilai)",
+      "item": [
+        {
+          "name": "3.1 Mahasiswa 1 Melihat Nilai Miliknya (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_mhs1}}" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "url": "{{baseUrl}}/nilai"
+          }
+        },
+        {
+          "name": "3.2 Mahasiswa Menggunakan Device ID Orang Lain (403 Forbidden)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_mhs1}}" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "url": "{{baseUrl}}/nilai"
+          }
+        },
+        {
+          "name": "3.3 Dosen 1 Melihat Nilai Kelas yang Diampunya (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_dosen1}}" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "url": "{{baseUrl}}/nilai"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Pengubahan Nilai (PUT /nilai/:id)",
+      "item": [
+        {
+          "name": "4.1 Dosen 1 Mengubah Nilai Kelas Sendiri (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_dosen1}}" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nilai_angka\": 95.0,\n  \"nilai_huruf\": \"A\"\n}"
+            },
+            "url": "{{baseUrl}}/nilai/1"
+          }
+        },
+        {
+          "name": "4.2 Dosen 1 Mengubah Nilai Kelas Dosen Lain (403 Forbidden)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_dosen1}}" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nilai_angka\": 70.0,\n  \"nilai_huruf\": \"B\"\n}"
+            },
+            "url": "{{baseUrl}}/nilai/4"
+          }
+        },
+        {
+          "name": "4.3 Mahasiswa Mencoba Mengubah Nilai (403 Forbidden)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_mhs1}}" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nilai_angka\": 100.0,\n  \"nilai_huruf\": \"A\"\n}"
+            },
+            "url": "{{baseUrl}}/nilai/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Finalisasi Kelas & Inter-Service M2M",
+      "item": [
+        {
+          "name": "5.1 Dosen 1 Finalisasi Kelas 1 (200 OK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_dosen1}}" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "url": "{{baseUrl}}/kelas/1/finalisasi"
+          }
+        },
+        {
+          "name": "5.2 Mengubah Nilai Setelah Finalisasi (403 Forbidden)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_dosen1}}" },
+              { "key": "X-Device-ID", "value": "DEV-DSN-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nilai_angka\": 80.0,\n  \"nilai_huruf\": \"B\"\n}"
+            },
+            "url": "{{baseUrl}}/nilai/1"
+          }
+        },
+        {
+          "name": "5.3 User Biasa Tembak Sinkronisasi Transkrip (403 Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+              { "key": "X-Device-ID", "value": "DEV-ADM-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kelas_id\": 1,\n  \"items\": []\n}"
+            },
+            "url": "{{baseUrl}}/transkrip/sinkron"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Transkrip Akademik (GET /transkrip/:nim)",
+      "item": [
+        {
+          "name": "6.1 Mahasiswa 1 Melihat Transkrip Sendiri (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_mhs1}}" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "url": "{{baseUrl}}/transkrip/217006001"
+          }
+        },
+        {
+          "name": "6.2 Mahasiswa 1 Intip Transkrip Mahasiswa 2 (403 Forbidden)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_mhs1}}" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "url": "{{baseUrl}}/transkrip/217006002"
+          }
+        },
+        {
+          "name": "6.3 Admin Melihat Transkrip Mahasiswa (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+              { "key": "X-Device-ID", "value": "DEV-ADM-001" }
+            ],
+            "url": "{{baseUrl}}/transkrip/217006001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Refresh Token & Logout",
+      "item": [
+        {
+          "name": "7.1 Refresh Token (200 OK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token_mhs1}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "7.2 Logout (200 OK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token_mhs1}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "7.3 Pakai Refresh Token yang Sudah Dicabut (403 Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Device-ID", "value": "DEV-MHS-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token_mhs1}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Telemetri & Audit Log",
+      "item": [
+        {
+          "name": "8.1 Melihat Catatan Audit Log PEP Gateway",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/audit-logs?limit=30"
+          }
+        }
+      ]
+    }
+  ]
+}

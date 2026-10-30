@@ -1,0 +1,24 @@
+{
+  "name": "praktikum-zero-trust-security",
+  "version": "1.0.0",
+  "description": "Implementasi Arsitektur Zero Trust (NIST SP 800-207) - Keamanan Informasi Universitas Siliwangi",
+  "main": "gateway/gateway.js",
+  "type": "commonjs",
+  "scripts": {
+    "db:init": "node db/seed.js",
+    "start:gateway": "node gateway/gateway.js",
+    "start:nilai": "node services/nilai-service/server.js",
+    "start:transkrip": "node services/transkrip-service/server.js",
+    "start:all": "concurrently \"npm run start:gateway\" \"npm run start:nilai\" \"npm run start:transkrip\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "bcryptjs": "^3.0.2",
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
