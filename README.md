@@ -337,26 +337,4 @@ node -e "const db = require('./db/db'); console.table(db.prepare('SELECT id, tim
 
 ---
 
-## 6. Petunjuk Demonstrasi Video (Durasi 6–9 Menit)
 
-Struktur penyampaian video demo yang direkomendasikan:
-1. **0:00 - 1:00 | Pendahuluan & Arsitektur NIST SP 800-207:**
-   - Tunjukkan diagram arsitektur sistem (API Gateway Port 3000 sebagai PEP, Service Nilai Port 3001, Service Transkrip Port 3002).
-   - Jelaskan konsep *Never Trust, Always Verify*, *Least Privilege*, dan *Assume Breach*.
-2. **1:00 - 2:30 | Autentikasi, Token, & Device Context:**
-   - Perlihatkan kode `gateway/policy.js` (fungsi `loginUser` dan verifikasi device).
-   - Demo login berhasil dengan device terdaftar vs login ditolak saat `X-Device-ID` diubah.
-3. **2:30 - 4:00 | Proteksi Service & X-Gateway-Secret:**
-   - Perlihatkan kode `services/nilai-service/middleware/verifyTrust.js`.
-   - Demo penolakan request langsung ke port 3001 tanpa header `X-Gateway-Secret`.
-4. **4:00 - 5:30 | Kontrol Akses Berbasis Kepemilikan Data & Jam Akses:**
-   - Demo Dosen 1 melihat nilai kelasnya vs mencoba mengubah nilai kelas Dosen 2 (ditolak).
-   - Demo pembatasan jam operasional akses.
-5. **5:30 - 7:30 | Finalisasi Kelas & Panggilan Antar-Service M2M:**
-   - Demo eksekusi `POST /kelas/1/finalisasi`.
-   - Tunjukkan log terminal: Service Nilai meminta Service Token ke Gateway, lalu meneruskannya ke Service Transkrip.
-   - Demo nilai mahasiswa terkunci dan otomatis muncul di `GET /transkrip/:nim`.
-   - Demo penolakan jika user biasa memanggil `POST /transkrip/sinkron`.
-6. **7:30 - 8:30 | Refresh Token, Logout, & Audit Log:**
-   - Demo logout dan pencabutan token.
-   - Tunjukkan isi tabel `audit_logs` di database.
